@@ -74,8 +74,8 @@ rosserial_configure_client(
 )
 
 
-rosserial_add_client_target(firmware hello ALL)
-rosserial_add_client_target(firmware hello-upload)
+rosserial_add_client_target(firmware scorbot_firmware ALL)
+rosserial_add_client_target(firmware scorbot_firmware-upload)
 
 ###########
 ## Build ##

@@ -13,11 +13,18 @@ float motor_commands[5] = {0,0,0,0,0};
 
 void read_joint_cb(const read_joint_states::Request & req, read_joint_states::Response & res)
 {
-  res.joint0 = joint_angle_deg[0];
-  res.joint1 = joint_angle_deg[1];
-  res.joint2 = joint_angle_deg[2];
-  res.joint3 = joint_angle_deg[3];
-  res.joint4 = joint_angle_deg[4];
+  // res.joint0 = joint_angle_deg[0];
+  // res.joint1 = joint_angle_deg[1];
+  // res.joint2 = joint_angle_deg[2];
+  // res.joint3 = joint_angle_deg[3];
+  // res.joint4 = joint_angle_deg[4];
+
+  // Dummy test, previous commands passed through as current states
+  res.joint0 = motor_commands[0];
+  res.joint1 = motor_commands[1];
+  res.joint2 = motor_commands[2];
+  res.joint3 = motor_commands[3];
+  res.joint4 = motor_commands[4];
 
 }
 

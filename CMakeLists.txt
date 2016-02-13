@@ -18,7 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
    write_joint_cmd.srv
  )
 
-
+add_message_files(
+  FILES
+  scorbot_joint_states.msg
+  scorbot_joint_cmd.msg	
+)
 
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
