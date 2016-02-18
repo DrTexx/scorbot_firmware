@@ -7,6 +7,6 @@ include_directories(${ROS_LIB_DIR})
 
 generate_arduino_firmware(scorbot_firmware
   SRCS arduino_node.cpp ${ROS_LIB_DIR}/time.cpp
-  BOARD uno
+  BOARD mega
   PORT /dev/ttyACM0
 )
