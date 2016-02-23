@@ -33,10 +33,21 @@ float motor_commands[5] = {0,0,0,0,0};
 bool new_data_ready = false;
 scorbot_firmware::scorbot_joint_cmd input_cmd_msg;
 scorbot_firmware::scorbot_joint_states joint_state_msg;
+
+//Function prototypes
+void update_motor_commands();
+void update_counter();
+void motorFW(char motorNum, int rpm);
+void motorBW(char motorNum, int rpm);
+void motorHalt(char motorNum);
+void motorST(const int motorNum);
+
+
 void joint_cmd_cb(const scorbot_firmware::scorbot_joint_cmd& msg)
 {
     new_data_ready =true;
-    input_cmd_msg           = msg;        
+    input_cmd_msg           = msg;
+    update_motor_commands();                
 }
 
 
@@ -48,26 +59,32 @@ ros::Subscriber<scorbot_firmware::scorbot_joint_cmd> joint_cmd_subscriber("/scor
 
 
 //Non ROS Functions
-void motorFW(const int motorNum, byte rpm)
+void motorFW(char motorNum, int rpm)
 {
   digitalWrite(M1[motorNum], HIGH);
   digitalWrite(M2[motorNum], LOW);
   analogWrite(Mpwm[motorNum], rpm);
+  delay(100);
+  motorST(motorNum);
 }
 
-void motorBW(const int motorNum, byte rpm)
+void motorBW(char motorNum, int rpm)
 {
     digitalWrite(M1[motorNum], LOW);
     digitalWrite(M2[motorNum], HIGH);
     analogWrite(Mpwm[motorNum], rpm);
+    delay(100);
+    motorST(motorNum);
 }
 
-void motorHalt(const int motorNum)
+void motorHalt(char motorNum)
 {
     digitalWrite(M1[motorNum], HIGH);
     digitalWrite(M2[motorNum], HIGH);
-    //analogWrite(Mpwm[motorNum], 255);
-
+    // From datasheet of L298, giving low to enable pin while same inputs to 
+    // the 2 terminals will give a free running stop. High to the enable pin 
+    // will give a fast stop, undesirable in our case as it will give jerky motion 
+    analogWrite(Mpwm[motorNum], 0);
 }
 
 void motorST(const int motorNum)
@@ -100,6 +117,38 @@ void counts_to_rad()
   for(int i=0;i<5;i++)
   {
    joint_angle_rad[i] = joint_angle_deg[i] * DEG_TO_RAD;
+  }
+}
+
+void update_motor_commands()
+{
+  float temp_cmd[5];
+
+  temp_cmd[0] = input_cmd_msg.cmd0;
+  temp_cmd[1] = input_cmd_msg.cmd1;
+  temp_cmd[2] = (input_cmd_msg.cmd1 + input_cmd_msg.cmd2)*(-1);
+  temp_cmd[3] = (input_cmd_msg.cmd1 + input_cmd_msg.cmd2 + input_cmd_msg.cmd3 + input_cmd_msg.cmd4)*(-1);
+  temp_cmd[4] = input_cmd_msg.cmd1+input_cmd_msg.cmd2+input_cmd_msg.cmd3-input_cmd_msg.cmd4;
+  
+  for(char i=0;i<5;i++)
+  {
+    //
+    temp_cmd[i] = constrain((int)temp_cmd[i],-255,255);
+
+  }
+
+  //command the motors with calculated values
+  for(char i=0;i<5;i++)
+  {
+    if(temp_cmd[i]>0) 
+      motorFW(i , temp_cmd[i] );
+    
+    else if(temp_cmd[i]<0) 
+      motorBW(i , (-1*temp_cmd[i]) );
+
+    else
+      motorHalt(i);
+
   }
 }
 
@@ -136,22 +185,12 @@ void setup()
 
 void loop()
 {
-  if(new_data_ready)
-  {
-    joint_state_msg.joint0 = joint_angle_rad[0]; //* input_cmd_msg.cmd0;
-    joint_state_msg.joint1 = joint_angle_rad[1]; //* input_cmd_msg.cmd1;
-    joint_state_msg.joint2 = joint_angle_rad[2]; //* input_cmd_msg.cmd2;
-    joint_state_msg.joint3 = joint_angle_rad[3]; //* input_cmd_msg.cmd3;
-    joint_state_msg.joint4 = joint_angle_rad[4]; //* input_cmd_msg.cmd4;
-  }
-  else
-  {
-    joint_state_msg.joint0 = 0;
-    joint_state_msg.joint1 = 0;
-    joint_state_msg.joint2 = 0;
-    joint_state_msg.joint3 = 0;
-    joint_state_msg.joint4 = 0;
-  }
+  counts_to_rad();
+  joint_state_msg.joint0 = joint_angle_rad[0]; //* input_cmd_msg.cmd0;
+  joint_state_msg.joint1 = joint_angle_rad[1]; //* input_cmd_msg.cmd1;
+  joint_state_msg.joint2 = joint_angle_rad[2]; //* input_cmd_msg.cmd2;
+  joint_state_msg.joint3 = joint_angle_rad[3]; //* input_cmd_msg.cmd3;
+  joint_state_msg.joint4 = joint_angle_rad[4]; //* input_cmd_msg.cmd4;
   
   joint_state_publisher.publish(&joint_state_msg);
   nh.spinOnce();
